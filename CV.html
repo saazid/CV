@@ -81,8 +81,10 @@
         }
 
         .cv-template {
-            width: 210mm; /* A4 size width */
-            min-height: 297mm; /* A4 size height */
+            width: 210mm;
+            /* A4 size width */
+            min-height: 297mm;
+            /* A4 size height */
             background: white;
             padding: 40px;
             box-shadow: 0 6px 12px rgba(0,0,0,0.1);
@@ -309,7 +311,6 @@
             <input type="file" id="photoInput" accept="image/*" onchange="updatePhoto()">
         </div>
 
-        <!-- toggles for sections -->
         <div class="form-group" id="group-objective">
             <label>
                 <input type="checkbox" id="toggleObjective" checked onchange="toggleSection('objective');"> Career Objective
@@ -331,7 +332,6 @@
                 <input type="checkbox" id="toggleEdu" checked onchange="toggleSection('edu');"> Educational Qualification
                 <button type="button" class="delete-btn" onclick="removeSection('edu');" title="Delete section">✖</button>
             </label>
-            <!-- B.Sc details -->
             <div class="edu-block" id="bsc-block">
                 <div class="edu-field" id="bsc-degree-field">
                     <label>B.Sc Degree <button class="delete-btn" onclick="removeEduField('bsc','degree');">✖</button></label>
@@ -350,7 +350,6 @@
                     <input type="text" id="bsc-resultInput" placeholder="e.g. 3.75" oninput="updateEducation()">
                 </div>
             </div>
-            <!-- HSC details -->
             <div class="edu-block" id="hsc-block">
                 <div class="edu-field" id="hsc-degree-field">
                     <label>HSC Degree <button class="delete-btn" onclick="removeEduField('hsc','degree');">✖</button></label>
@@ -369,7 +368,6 @@
                     <input type="text" id="hsc-resultInput" placeholder="e.g. 5.00" oninput="updateEducation()">
                 </div>
             </div>
-            <!-- SSC details -->
             <div class="edu-block" id="ssc-block">
                 <div class="edu-field" id="ssc-degree-field">
                     <label>SSC Degree <button class="delete-btn" onclick="removeEduField('ssc','degree');">✖</button></label>
@@ -596,19 +594,33 @@
             }
         }
 
-        // Function to download the CV as PDF
+        // Function to download the CV as PDF (Updated to solve the extra blank page issue)
         function downloadPDF() {
             const element = document.getElementById('cv-template');
+            
+            // শ্যাডো সাময়িকভাবে রিমুভ করা হচ্ছে যাতে A4 সাইজে সমস্যা না হয়
+            const originalShadow = element.style.boxShadow;
+            element.style.boxShadow = 'none';
+            
+            // অতিরিক্ত ব্ল্যাংক পেজ এড়াতে min-height সাময়িকভাবে auto করা হচ্ছে
+            const originalMinHeight = element.style.minHeight;
+            element.style.minHeight = 'auto';
+
             const opt = {
                 margin:       0,
                 filename:     'My_CV.pdf',
                 image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2 },
+                // scrollY: 0 যোগ করা হয়েছে যাতে স্ক্রলিং গ্যাপ না থাকে
+                html2canvas:  { scale: 2, scrollY: 0 }, 
                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
             };
 
             // New Promise-based usage of html2pdf
-            html2pdf().set(opt).from(element).save();
+            html2pdf().set(opt).from(element).save().then(() => {
+                // PDF জেনারেট হওয়ার পর শ্যাডো ও হাইট আগের অবস্থায় ফিরিয়ে আনা হচ্ছে
+                element.style.boxShadow = originalShadow;
+                element.style.minHeight = originalMinHeight;
+            });
         }
 
         // toggle visibility of sections based on checkbox
