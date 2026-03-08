@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic CV Builder</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #eef2f7;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            gap: 20px;
+            color: #1f2937;
+        }
+
+        /* Control Panel Styles */
+        .control-panel {
+            width: 40%;
+            background: #ffffff;
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 6px 10px rgba(0,0,0,0.1);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .control-panel h2 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        input[type="text"], input[type="email"], textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        textarea {
+            resize: vertical;
+            height: 80px;
+        }
+
+        button {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        button:hover {
+            background-color: #1d4ed8;
+        }
+
+        /* CV Preview Styles */
+        .preview-container {
+            width: 60%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .cv-template {
+            width: 210mm; /* A4 size width */
+            min-height: 297mm; /* A4 size height */
+            background: white;
+            padding: 40px;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+            line-height: 1.5;
+        }
+
+        .cv-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #333;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        .header-left {
+            flex: 1;
+        }
+        .header-right {
+            width: 100px;
+            height: 120px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f3f4f6;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        #cv-photo {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: cover;
+            border-radius: 2px;
+        }
+
+        .cv-name {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 0 0 5px 0;
+            text-transform: uppercase;
+        }
+
+        .cv-contact {
+            font-size: 14px;
+            color: #555;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: bold;
+            text-transform: uppercase;
+            background-color: #f0f0f0;
+            padding: 6px 10px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            border-left: 4px solid #2563eb;
+        }
+
+        .cv-content {
+            font-size: 14px;
+            line-height: 1.6;
+            white-space: pre-wrap; /* Preserve line breaks from textarea */
+        }
+        .cv-content ol {
+            margin: 0;
+            padding-left: 18px;
+            /* minimal vertical gap */
+        }
+        .cv-content ol li {
+            margin: 0;
+            padding: 0;
+            line-height: 1.2;
+        }
+        /* ensure any <br> doesn't add extra space */
+        .cv-content ol li br {
+            line-height: 1.2;
+        }
+        .skills-column-container {
+            display: flex;
+            gap: 20px;
+        }
+        .skills-column {
+            flex: 1;
+        }
+        .skill-heading-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .skills-part input[type="text"] {
+            margin-bottom: 4px;
+        }
+        .skills-column ol {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .skills-part textarea {
+            height: 60px;
+        }
+        .objective-text {
+            text-align: justify;
+            text-align-last: justify;
+            text-justify: inter-word;
+        }
+        .delete-btn {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #e11d48;
+            color: white;
+            font-size: 12px;
+            line-height: 18px;
+            border: none;
+            cursor: pointer;
+            margin-left: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .delete-btn:hover {
+            background: #9f1239;
+        }
+        .restore-container {
+            display: none;
+            margin-bottom: 10px;
+            padding: 5px;
+            background: #f9fafb;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+        }
+        .restore-item {
+            display: inline-block;
+            margin-right: 8px;
+            font-size: 13px;
+        }
+        .restore-btn {
+            background: #10b981;
+            border: none;
+            color: white;
+            font-size: 12px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 4px;
+        }
+        .restore-btn:hover {
+            background: #059669;
+        }
+
+        /* responsive adjustments */
+        @media (max-width: 900px) {
+            body {
+                flex-direction: column;
+                padding: 10px;
+            }
+            .control-panel, .preview-container {
+                width: 100%;
+            }
+            .cv-template {
+                width: auto;
+                min-height: auto;
+                padding: 20px;
+            }
+            button {
+                font-size: 14px;
+                padding: 8px 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="control-panel">
+        <h2>CV Control Panel</h2>
+        
+        <div class="restore-container" id="restore-container"></div>
+
+        <div class="form-group" id="group-name">
+            <label>
+                Full Name
+                <button type="button" class="delete-btn" onclick="removeField('name');" title="Delete name">✖</button>
+            </label>
+            <input type="text" id="nameInput" placeholder="e.g. MD SAAZID BIN SAIF" oninput="updateCV()">
+        </div>
+        
+        <div class="form-group" id="group-title">
+            <label>
+                Title / Current Position
+                <button type="button" class="delete-btn" onclick="removeField('title');" title="Delete title">✖</button>
+            </label>
+            <input type="text" id="titleInput" placeholder="e.g. Research Intern At BGERC" oninput="updateCV()">
+        </div>
+
+        <div class="form-group" id="group-phone">
+            <label>
+                Phone Number
+                <button type="button" class="delete-btn" onclick="removeField('phone');" title="Delete phone">✖</button>
+            </label>
+            <input type="text" id="phoneInput" placeholder="e.g. +880 123456789" oninput="updateCV()">
+        </div>
+
+        <div class="form-group" id="group-email">
+            <label>
+                Email
+                <button type="button" class="delete-btn" onclick="removeField('email');" title="Delete email">✖</button>
+            </label>
+            <input type="email" id="emailInput" placeholder="e.g. email@example.com" oninput="updateCV()">
+        </div>
+
+        <div class="form-group" id="group-address">
+            <label>
+                Address
+                <button type="button" class="delete-btn" onclick="removeField('address');" title="Delete address">✖</button>
+            </label>
+            <input type="text" id="addressInput" placeholder="e.g. Mirzapur, Rajshahi" oninput="updateCV()">
+        </div>
+
+        <div class="form-group" id="group-photo">
+            <label>
+                Passport Photo
+                <button type="button" class="delete-btn" onclick="removeField('photo');" title="Delete photo">✖</button>
+            </label>
+            <input type="file" id="photoInput" accept="image/*" onchange="updatePhoto()">
+        </div>
+
+        <!-- toggles for sections -->
+        <div class="form-group" id="group-objective">
+            <label>
+                <input type="checkbox" id="toggleObjective" checked onchange="toggleSection('objective');"> Career Objective
+                <button type="button" class="delete-btn" onclick="removeSection('objective');" title="Delete section">✖</button>
+            </label>
+            <textarea id="objectiveInput" placeholder="Write your career objective..." oninput="updateCV()"></textarea>
+        </div>
+
+        <div class="form-group" id="group-experience">
+            <label>
+                <input type="checkbox" id="toggleExperience" checked onchange="toggleSection('experience');"> Work Experience
+                <button type="button" class="delete-btn" onclick="removeSection('experience');" title="Delete section">✖</button>
+            </label>
+            <textarea id="experienceInput" placeholder="• Researcher - March 2025..." oninput="updateCV()"></textarea>
+        </div>
+
+        <div class="form-group" id="group-edu">
+            <label>
+                <input type="checkbox" id="toggleEdu" checked onchange="toggleSection('edu');"> Educational Qualification
+                <button type="button" class="delete-btn" onclick="removeSection('edu');" title="Delete section">✖</button>
+            </label>
+            <!-- B.Sc details -->
+            <div class="edu-block" id="bsc-block">
+                <div class="edu-field" id="bsc-degree-field">
+                    <label>B.Sc Degree <button class="delete-btn" onclick="removeEduField('bsc','degree');">✖</button></label>
+                    <input type="text" id="bsc-degreeInput" placeholder="e.g. Bachelor of Science" oninput="updateEducation()">
+                </div>
+                <div class="edu-field" id="bsc-inst-field">
+                    <label>University/College <button class="delete-btn" onclick="removeEduField('bsc','inst');">✖</button></label>
+                    <input type="text" id="bsc-instInput" placeholder="e.g. University of Rajshahi" oninput="updateEducation()">
+                </div>
+                <div class="edu-field" id="bsc-session-field">
+                    <label>Session <button class="delete-btn" onclick="removeEduField('bsc','session');">✖</button></label>
+                    <input type="text" id="bsc-sessionInput" placeholder="e.g. 2023-Present" oninput="updateEducation()">
+                </div>
+                <div class="edu-field" id="bsc-result-field">
+                    <label>Result <button class="delete-btn" onclick="removeEduField('bsc','result');">✖</button></label>
+                    <input type="text" id="bsc-resultInput" placeholder="e.g. 3.75" oninput="updateEducation()">
+                </div>
+            </div>
+            <!-- HSC details -->
+            <div class="edu-block" id="hsc-block">
+                <div class="edu-field" id="hsc-degree-field">
+                    <label>HSC Degree <button class="delete-btn" onclick="removeEduField('hsc','degree');">✖</button></label>
+                    <input type="text" id="hsc-degreeInput" placeholder="e.g. H.S.C (Science)" oninput="updateEducation()">
+                </div>
+                <div class="edu-field" id="hsc-inst-field">
+                    <label>Institution <button class="delete-btn" onclick="removeEduField('hsc','inst');">✖</button></label>
+                    <input type="text" id="hsc-instInput" placeholder="e.g. BCIC College" oninput="updateEducation()">
+                </div>
+                <div class="edu-field" id="hsc-session-field">
+                    <label>Session <button class="delete-btn" onclick="removeEduField('hsc','session');">✖</button></label>
+                    <input type="text" id="hsc-sessionInput" placeholder="e.g. 2020-21" oninput="updateEducation()">
+                </div>
+                <div class="edu-field" id="hsc-result-field">
+                    <label>Result <button class="delete-btn" onclick="removeEduField('hsc','result');">✖</button></label>
+                    <input type="text" id="hsc-resultInput" placeholder="e.g. 5.00" oninput="updateEducation()">
+                </div>
+            </div>
+            <!-- SSC details -->
+            <div class="edu-block" id="ssc-block">
+                <div class="edu-field" id="ssc-degree-field">
+                    <label>SSC Degree <button class="delete-btn" onclick="removeEduField('ssc','degree');">✖</button></label>
+                    <input type="text" id="ssc-degreeInput" placeholder="e.g. S.S.C (Science)" oninput="updateEducation()">
+                </div>
+                <div class="edu-field" id="ssc-inst-field">
+                    <label>Institution <button class="delete-btn" onclick="removeEduField('ssc','inst');">✖</button></label>
+                    <input type="text" id="ssc-instInput" placeholder="e.g. Monipur Uchcha Vidyalaya" oninput="updateEducation()">
+                </div>
+                <div class="edu-field" id="ssc-session-field">
+                    <label>Session <button class="delete-btn" onclick="removeEduField('ssc','session');">✖</button></label>
+                    <input type="text" id="ssc-sessionInput" placeholder="e.g. 2019-20" oninput="updateEducation()">
+                </div>
+                <div class="edu-field" id="ssc-result-field">
+                    <label>Result <button class="delete-btn" onclick="removeEduField('ssc','result');">✖</button></label>
+                    <input type="text" id="ssc-resultInput" placeholder="e.g. 5.00" oninput="updateEducation()">
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group" id="group-skills">
+            <label>
+                <input type="checkbox" id="toggleSkills" checked onchange="toggleSection('skills');"> Technical Skills
+                <button type="button" class="delete-btn" onclick="removeSection('skills');" title="Delete section">✖</button>
+            </label>
+            <div class="skills-part" id="skills-part1">
+                <div class="skill-heading-row">
+                    <label>Heading 1</label>
+                    <button type="button" class="delete-btn" onclick="removeSkillHeading(1);">✖</button>
+                </div>
+                <input type="text" id="skillsHeading1" placeholder="e.g. GIS Tools" oninput="updateSkills()">
+                <textarea id="skillsInput1" placeholder="• Skill A" oninput="updateSkills()"></textarea>
+            </div>
+            <div class="skills-part" id="skills-part2">
+                <div class="skill-heading-row">
+                    <label>Heading 2</label>
+                    <button type="button" class="delete-btn" onclick="removeSkillHeading(2);">✖</button>
+                </div>
+                <input type="text" id="skillsHeading2" placeholder="e.g. Programming" oninput="updateSkills()">
+                <textarea id="skillsInput2" placeholder="• Skill B" oninput="updateSkills()"></textarea>
+            </div>
+            <div class="skills-part" id="skills-part3">
+                <div class="skill-heading-row">
+                    <label>Heading 3</label>
+                    <button type="button" class="delete-btn" onclick="removeSkillHeading(3);">✖</button>
+                </div>
+                <input type="text" id="skillsHeading3" placeholder="e.g. Remote Sensing" oninput="updateSkills()">
+                <textarea id="skillsInput3" placeholder="• Skill C" oninput="updateSkills()"></textarea>
+            </div>
+        </div>
+
+        <div class="form-group" id="group-training">
+            <label>
+                <input type="checkbox" id="toggleTraining" checked onchange="toggleSection('training');"> Training & Professional Specializations
+                <button type="button" class="delete-btn" onclick="removeSection('training');" title="Delete section">✖</button>
+            </label>
+            <textarea id="trainingInput" placeholder="• Certified GIS Specialist" oninput="updateCV()"></textarea>
+        </div>
+
+        <div class="form-group" id="group-extra">
+            <label>
+                <input type="checkbox" id="toggleExtra" checked onchange="toggleSection('extra');"> Extra Curricular Activities
+                <button type="button" class="delete-btn" onclick="removeSection('extra');" title="Delete section">✖</button>
+            </label>
+            <div id="extrasContainer"></div>
+            <button type="button" style="margin-top:6px;" onclick="addExtraItem()">+ Add Activity</button>
+        </div>
+
+        <div class="form-group" id="group-cert">
+            <label>
+                <input type="checkbox" id="toggleCert" checked onchange="toggleSection('cert');"> Certifications
+                <button type="button" class="delete-btn" onclick="removeSection('cert');" title="Delete section">✖</button>
+            </label>
+            <div id="certsContainer"></div>
+            <button type="button" style="margin-top:6px;" onclick="addCertItem()">+ Add Certification</button>
+        </div>
+
+
+        <button onclick="downloadPDF()">Download as PDF</button>
+        <button onclick="restoreAll()" style="margin-top:10px; background:#6b7280;">Restore All Sections</button>
+    </div>
+
+    <div class="preview-container">
+        <div class="cv-template" id="cv-template">
+            <div class="cv-header">
+                <div class="header-left">
+                    <h1 class="cv-name" id="cv-name">MD SAAZID BIN SAIF</h1>
+                    <div class="cv-contact" id="cv-title">Research Intern</div>
+                    <div class="cv-contact" id="cv-contacts">
+                        <span id="cv-phone">+880 XXXXXXXX</span> | 
+                        <span id="cv-email">email@example.com</span> | 
+                        <span id="cv-address">City, Country</span>
+                    </div>
+                </div>
+                <div class="header-right" id="photo-wrapper">
+                    <img id="cv-photo" src="" alt="Photo" style="display:none;">
+                </div>
+            </div>
+
+            <div class="section objective-section" id="section-objective">
+                <div class="section-title">Career Objective</div>
+                <div class="cv-content objective-text" id="cv-objective">Versatile and results-driven professional...</div>
+            </div>
+
+            <div class="section experience-section" id="section-experience">
+                <div class="section-title">Work Experience</div>
+                <div class="cv-content" id="cv-experience">• Add your experience here...</div>
+            </div>
+
+            <div class="section education-section" id="section-edu">
+                <div class="section-title">Educational Qualification</div>
+                <div class="cv-content" id="cv-edu">• Add your education here...</div>
+            </div>
+
+            <div class="section skills-section" id="section-skills">
+                <div class="section-title">Technical Skills</div>
+                <div class="cv-content" id="cv-skills">• Add your skills here...</div>
+            </div>
+
+            <div class="section training-section" id="section-training">
+                <div class="section-title">Training & Professional Specializations</div>
+                <div class="cv-content" id="cv-training">• Add training or specializations here...</div>
+            </div>
+
+            <div class="section extra-section" id="section-extra">
+                <div class="section-title">Extra Curricular Activities</div>
+                <div class="cv-content" id="cv-extra">• Add your activities here...</div>
+            </div>
+
+            <div class="section cert-section" id="section-cert">
+                <div class="section-title">Certifications</div>
+                <div class="cv-content" id="cv-cert">• Add your certifications here...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Function to update the CV in real-time
+        function updateCV() {
+            // fields
+            updateField('name','cv-name','YOUR NAME');
+            updateField('title','cv-title','Your Title');
+            updateField('phone','cv-phone','Phone');
+            updateField('email','cv-email','Email');
+            updateField('address','cv-address','Address');
+
+            // sections
+            document.getElementById('cv-objective').innerText = document.getElementById('objectiveInput').value || 'Career objective will appear here...';
+            document.getElementById('cv-experience').innerText = document.getElementById('experienceInput').value || 'Experience will appear here...';
+            updateEducation();
+            updateSkills();
+            document.getElementById('cv-training').innerText = document.getElementById('trainingInput').value || 'Training will appear here...';
+            // extras list
+            const extraHtml = extras.filter(e=>e && e.trim()).map(e=>' <li>'+e.trim().replace(/\n/g,'<br>')+'</li>').join('');
+            document.getElementById('cv-extra').innerHTML = extraHtml ? '<ol>'+extraHtml+'</ol>' : 'Extra curricular activities will appear here...';
+            // certs list
+            const certHtml = certs.filter(c=>c && c.trim()).map(c=>' <li>'+c.trim().replace(/\n/g,'<br>')+'</li>').join('');
+            document.getElementById('cv-cert').innerHTML = certHtml ? '<ol>'+certHtml+'</ol>' : 'Certifications will appear here...';
+        }
+
+        function updateField(field, elementId, defaultText) {
+            const grp = document.getElementById('group-' + field);
+            const deleted = grp && grp.dataset.deleted === 'true';
+            const elem = document.getElementById(elementId);
+            if (deleted) {
+                if (elem) elem.style.display = 'none';
+            } else {
+                if (elem) {
+                    elem.style.display = '';
+                    elem.innerText = document.getElementById(field + 'Input').value || defaultText;
+                }
+            }
+        }
+
+        function removeField(field) {
+            const grp = document.getElementById('group-' + field);
+            if (grp) {
+                grp.dataset.deleted = 'true';
+                grp.style.display = 'none';
+            }
+            const elem = document.getElementById('cv-' + field);
+            if (elem) elem.style.display = 'none';
+            if (field === 'photo') {
+                const photo = document.getElementById('cv-photo');
+                if (photo) photo.style.display = 'none';
+                const wrapper = document.getElementById('photo-wrapper');
+                if (wrapper) wrapper.style.display = 'none';
+            }
+            showRestoreItem(field, true);
+        }
+
+        function restoreField(field) {
+            const grp = document.getElementById('group-' + field);
+            if (grp) {
+                grp.dataset.deleted = 'false';
+                grp.style.display = '';
+            }
+            const elem = document.getElementById('cv-' + field);
+            if (elem) elem.style.display = '';
+            if (field === 'photo') {
+                const wrapper = document.getElementById('photo-wrapper');
+                if (wrapper) wrapper.style.display = '';
+            }
+            const r = document.getElementById('restore-' + field);
+            if (r) r.remove();
+            toggleRestoreVisibility();
+            updateCV();
+        }
+
+        function updatePhoto() {
+            const input = document.getElementById('photoInput');
+            const file = input.files && input.files[0];
+            const img = document.getElementById('cv-photo');
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    img.src = e.target.result;
+                    img.style.display = '';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                img.src = '';
+                img.style.display = 'none';
+            }
+        }
+
+        // Function to download the CV as PDF
+        function downloadPDF() {
+            const element = document.getElementById('cv-template');
+            const opt = {
+                margin:       0,
+                filename:     'My_CV.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2 },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            // New Promise-based usage of html2pdf
+            html2pdf().set(opt).from(element).save();
+        }
+
+        // toggle visibility of sections based on checkbox
+        function toggleSection(section) {
+            const cb = document.getElementById('toggle' + capitalize(section));
+            const wrap = document.getElementById('section-' + section);
+            if (wrap) {
+                wrap.style.display = cb && cb.checked ? '' : 'none';
+            }
+            // also hide form-group if deleted
+            const grp = document.getElementById('group-' + section);
+            if (grp && grp.dataset.deleted === 'true' && cb) {
+                grp.style.display = 'none';
+            }
+            if (section === 'edu' && cb && cb.checked) {
+                updateEducation();
+            }
+        }
+
+        function updateEducation() {
+            let html = '';
+            ['bsc','hsc','ssc'].forEach(deg => {
+                const block = document.getElementById(deg + '-block');
+                if (!block || block.dataset.deleted === 'true') return;
+                const parts = [];
+                const degreeVal = document.getElementById(deg + '-degreeInput');
+                if (degreeVal && degreeVal.value) parts.push('<strong>' + degreeVal.value + '</strong>');
+                const instVal = document.getElementById(deg + '-instInput');
+                if (instVal && instVal.value) parts.push(instVal.value);
+                const sessionVal = document.getElementById(deg + '-sessionInput');
+                if (sessionVal && sessionVal.value) parts.push(sessionVal.value);
+                const resultVal = document.getElementById(deg + '-resultInput');
+                if (resultVal && resultVal.value) parts.push('Result: ' + resultVal.value);
+                if (parts.length) {
+                    html += parts.join(', ') + '<br>';
+                }
+            });
+            document.getElementById('cv-edu').innerHTML = html || 'Education will appear here...';
+        }
+
+        function formatNumberedList(text) {
+            if (!text) return '';
+            const lines = text.split('\n').map(l=>l.trim()).filter(l=>l);
+            // remove any leading bullet/dash to avoid numbering like "1. • item"
+            return lines.map((l,i)=>{
+                const clean = l.replace(/^[•\-]\s*/, '');
+                return (i+1)+'. '+clean;
+            }).join('\n');
+        }
+
+        // generate HTML ordered list from text lines
+        function formatListHTML(text) {
+            if (!text) return '';
+            const lines = text.split('\n').map(l=>l.trim()).filter(l=>l);
+            let html = '<ol>'; 
+            lines.forEach(l=>{
+                const clean = l.replace(/^[•\-]\s*/, '');
+                html += '<li>' + clean + '</li>';
+            });
+            html += '</ol>';
+            return html;
+        }
+
+        // extras & certifications as arrays
+        const extras = [''];
+        const certs = [''];
+
+        function renderExtras() {
+            const container = document.getElementById('extrasContainer');
+            container.innerHTML = '';
+            extras.forEach((val, idx) => {
+                const wrapper = document.createElement('div');
+                wrapper.style.display = 'flex';
+                wrapper.style.alignItems = 'center';
+                wrapper.style.marginBottom = '4px';
+                const textarea = document.createElement('textarea');
+                textarea.value = val;
+                textarea.rows = 2;
+                textarea.placeholder = 'Activity '+(idx+1);
+                textarea.style.flex = '1';
+                textarea.oninput = () => { extras[idx] = textarea.value; updateCV(); };
+                wrapper.appendChild(textarea);
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = '✖';
+                btn.className = 'delete-btn';
+                btn.style.marginLeft = '6px';
+                btn.onclick = () => { removeExtraItem(idx); };
+                wrapper.appendChild(btn);
+                container.appendChild(wrapper);
+            });
+        }
+
+        function addExtraItem() {
+            extras.push('');
+            renderExtras();
+        }
+
+        function removeExtraItem(index) {
+            if (extras.length > 1) {
+                extras.splice(index, 1);
+                renderExtras();
+                updateCV();
+            }
+        }
+
+        function renderCerts() {
+            const container = document.getElementById('certsContainer');
+            container.innerHTML = '';
+            certs.forEach((val, idx) => {
+                const wrapper = document.createElement('div');
+                wrapper.style.display = 'flex';
+                wrapper.style.alignItems = 'center';
+                wrapper.style.marginBottom = '4px';
+                const textarea = document.createElement('textarea');
+                textarea.value = val;
+                textarea.rows = 2;
+                textarea.placeholder = 'Certification '+(idx+1);
+                textarea.style.flex = '1';
+                textarea.oninput = () => { certs[idx] = textarea.value; updateCV(); };
+                wrapper.appendChild(textarea);
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = '✖';
+                btn.className = 'delete-btn';
+                btn.style.marginLeft = '6px';
+                btn.onclick = () => { removeCertItem(idx); };
+                wrapper.appendChild(btn);
+                container.appendChild(wrapper);
+            });
+        }
+
+        function addCertItem() {
+            certs.push('');
+            renderCerts();
+        }
+
+        function removeCertItem(index) {
+            if (certs.length > 1) {
+                certs.splice(index, 1);
+                renderCerts();
+                updateCV();
+            }
+        }
+
+        function updateSkills() {
+            const parts = [
+                document.getElementById('skillsInput1').value,
+                document.getElementById('skillsInput2').value,
+                document.getElementById('skillsInput3').value
+            ];
+            const headings = [
+                document.getElementById('skillsHeading1')?.value || '',
+                document.getElementById('skillsHeading2')?.value || '',
+                document.getElementById('skillsHeading3')?.value || ''
+            ];
+            const activeIdx = parts.map((p,i)=>({p,i})).filter(o=>o.p && o.p.trim()).map(o=>o.i);
+            let html = '';
+            if (activeIdx.length === 0) {
+                html = 'Skills will appear here...';
+            } else {
+                html = '<div class="skills-column-container">';
+                activeIdx.forEach(idx=>{
+                    const text = parts[idx];
+                    const head = headings[idx];
+                    html += '<div class="skills-column">';
+                    if (head && head.trim()) html += '<strong>'+head+'</strong><br>';
+                    html += '<ol>';
+                    const lines = text.split('\n').map(l=>l.trim()).filter(l=>l);
+                    lines.forEach(line=>{ html += '<li>' + line.replace(/^•\s*/, '') + '</li>'; });
+                    html += '</ol></div>';
+                });
+                html += '</div>';
+            }
+            document.getElementById('cv-skills').innerHTML = html;
+        }
+
+        function removeEduField(deg, field) {
+            const wrapper = document.getElementById(deg + '-' + field + '-field');
+            if (wrapper) wrapper.style.display = 'none';
+            const input = document.getElementById(deg + '-' + field + 'Input');
+            if (input) input.value = '';
+            showRestoreItem(deg + '-' + field, true);
+            updateEducation();
+        }
+
+        function removeSkillHeading(part) {
+            const head = document.getElementById('skillsHeading' + part);
+            if (head) head.parentNode.style.display = 'none';
+            showRestoreItem('skillsHeading' + part, true);
+            updateSkills();
+        }
+
+        function restoreSkillHeading(id) {
+            const head = document.getElementById(id);
+            if (head) head.parentNode.style.display = '';
+            const r = document.getElementById('restore-' + id);
+            if (r) r.remove();
+            updateSkills();
+            toggleRestoreVisibility();
+        }
+
+        function restoreEduField(id) {
+            const parts = id.split('-');
+            if (parts.length !== 2) return;
+            const [deg, field] = parts;
+            const wrapper = document.getElementById(deg + '-' + field + '-field');
+            if (wrapper) wrapper.style.display = '';
+            const r = document.getElementById('restore-' + id);
+            if (r) r.remove();
+            updateEducation();
+            toggleRestoreVisibility();
+        }
+
+        // remove section permanently from panel (holds hidden state)
+        function removeSection(section) {
+            const grp = document.getElementById('group-' + section);
+            if (grp) {
+                grp.dataset.deleted = 'true';
+                grp.style.display = 'none';
+            }
+            const wrap = document.getElementById('section-' + section);
+            if (wrap) wrap.style.display = 'none';
+            showRestoreItem(section, false);
+        }
+
+        function showRestoreItem(id, isField) {
+            let container = document.getElementById('restore-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'restore-container';
+                container.className = 'restore-container';
+                document.querySelector('.control-panel').insertBefore(container, document.querySelector('.control-panel').firstChild);
+            }
+            if (document.getElementById('restore-' + id)) return;
+            const item = document.createElement('div');
+            item.id = 'restore-' + id;
+            item.className = 'restore-item';
+            let onclick;
+            if (isField && id.includes('-')) {
+                if (id.startsWith('skillsHeading')) {
+                    onclick = `restoreSkillHeading('${id}')`;
+                } else {
+                    onclick = `restoreEduField('${id}')`;
+                }
+            } else {
+                onclick = isField ? `restoreField('${id}')` : `restoreSection('${id}')`;
+            }
+            item.innerHTML = `<span>${sectionLabel(id)}</span> <button class="restore-btn" onclick="${onclick}">↺ Restore</button>`;
+            container.appendChild(item);
+            container.style.display = 'block';
+        }
+
+        function restoreSection(section) {
+            const grp = document.getElementById('group-' + section);
+            if (grp) {
+                grp.dataset.deleted = 'false';
+                grp.style.display = '';
+            }
+            const wrap = document.getElementById('section-' + section);
+            if (wrap) wrap.style.display = '';
+            const r = document.getElementById('restore-' + section);
+            if (r) r.remove();
+            toggleRestoreVisibility();
+            updateCV();
+        }
+
+        function sectionLabel(id) {
+            const map = {
+                objective: 'Career Objective',
+                experience: 'Work Experience',
+                skills: 'Technical Skills',
+                training: 'Training & Professional Specializations',
+                extra: 'Extra Curricular Activities',
+                cert: 'Certifications',
+                edu: 'Educational Qualification',
+                name: 'Full Name',
+                title: 'Title',
+                phone: 'Phone',
+                email: 'Email',
+                address: 'Address',
+                'bsc-degree': 'B.Sc Degree',
+                'bsc-inst': 'B.Sc Institution',
+                'bsc-session': 'B.Sc Session',
+                'bsc-result': 'B.Sc Result',
+                'hsc-degree': 'HSC Degree',
+                'hsc-inst': 'HSC Institution',
+                'hsc-session': 'HSC Session',
+                'hsc-result': 'HSC Result',
+                'ssc-degree': 'SSC Degree',
+                'ssc-inst': 'SSC Institution',
+                'ssc-session': 'SSC Session',
+                'ssc-result': 'SSC Result',
+                'skillsHeading1': 'Skill Heading 1',
+                'skillsHeading2': 'Skill Heading 2',
+                'skillsHeading3': 'Skill Heading 3'
+            };
+            return map[id] || id;
+        }
+
+        function restoreAll() {
+            ['objective','experience','edu','skills','training','extra','cert','photo'].forEach(sec => {
+                const grp = document.getElementById('group-' + sec);
+                if (grp) {
+                    grp.dataset.deleted = 'false';
+                    grp.style.display = '';
+                }
+                if (sec !== 'photo') {
+                    const cb = document.getElementById('toggle' + capitalize(sec));
+                    if (cb) cb.checked = true;
+                    const wrap = document.getElementById('section-' + sec);
+                    if (wrap) wrap.style.display = '';
+                }
+            });
+            // restore skill headings
+            [1,2,3].forEach(n=>{
+                const head = document.getElementById('skillsHeading'+n);
+                if (head) head.parentNode.style.display = '';
+                const r = document.getElementById('restore-skillsHeading'+n);
+                if (r) r.remove();
+            });
+            // restore any edu fields hidden
+            ['bsc','hsc','ssc'].forEach(deg => {
+                ['degree','inst','session','result'].forEach(f => {
+                    const input = document.getElementById(deg + '-' + f + 'Input');
+                    if (input) input.parentNode.style.display = '';
+                    const r = document.getElementById('restore-' + deg + '-' + f);
+                    if (r) r.remove();
+                });
+            });
+            toggleRestoreVisibility();
+            updateEducation();
+        }
+
+        function capitalize(str) {
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+
+        // call update on page load to fill defaults and apply toggles
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCV();
+            ['objective','experience','edu','skills','training','extra','cert'].forEach(toggleSection);
+            renderExtras();
+            renderCerts();
+            toggleRestoreVisibility();
+            updateEducation();
+        });
+
+        function toggleRestoreVisibility() {
+            const container = document.getElementById('restore-container');
+            if (container) {
+                container.style.display = container.children.length ? 'block' : 'none';
+            }
+        }
+    </script>
+</body>
+</html>
